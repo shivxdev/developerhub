@@ -1,11 +1,14 @@
 
 import { useState, useEffect } from "react";
+
 import Projects from "./pages/Projects";
 import GitHubDashboard from "./pages/GitHub";
 import Skills from "./pages/Skills";
 import LearningGoals from "./pages/LearningGoals";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import PublicPortfolio from "./pages/PublicPortfolio";
+import ResumeBuilder from "./pages/ResumeBuilder";
 
 import {
   Code2,
@@ -53,7 +56,20 @@ type Page =
   | "github"
   | "skills"
   | "learning"
-  | "profile";
+  | "profile"
+  | "resume";
+
+const getPublicUsername = () => {
+  const match = window.location.pathname.match(/^\/u\/([^/]+)\/?$/);
+
+  if (!match) return null;
+
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+};
 
 const features = [
   {
@@ -301,12 +317,18 @@ function LoginRequired({
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
+
+  const [publicUsername, setPublicUsername] = useState<string | null>(
+    getPublicUsername
+  );
+
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
+  // Authentication check
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -333,14 +355,41 @@ function App() {
     checkAuth();
   }, []);
 
+  // Browser Back / Forward support
+  useEffect(() => {
+    const handlePopState = () => {
+      const username = getPublicUsername();
+
+      setPublicUsername(username);
+      setCurrentPage("home");
+      setMobileMenuOpen(false);
+      setProfileMenuOpen(false);
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const handleGitHubLogin = () => {
     window.location.href = `${API_URL}/api/auth/github`;
   };
 
+  // Main application navigation
   const navigateTo = (page: Page) => {
+    if (publicUsername) {
+      window.history.replaceState({}, "", "/");
+      setPublicUsername(null);
+    }
+
     setCurrentPage(page);
     setMobileMenuOpen(false);
     setProfileMenuOpen(false);
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -392,6 +441,16 @@ function App() {
           </p>
         </div>
       </div>
+    );
+  }
+
+  // Public Developer Portfolio
+  if (publicUsername) {
+    return (
+      <PublicPortfolio
+        username={publicUsername}
+        onBack={() => navigateTo("home")}
+      />
     );
   }
 
@@ -490,12 +549,26 @@ function App() {
     return <Profile onBack={() => navigateTo("home")} />;
   }
 
+  // Protect Resume Builder
+  if (currentPage === "resume") {
+    if (!user) {
+      return (
+        <LoginRequired
+          message="Please login with GitHub to create and manage your resumes."
+          onBack={() => navigateTo("home")}
+          onLogin={handleGitHubLogin}
+        />
+      );
+    }
+
+    return <ResumeBuilder onBack={() => navigateTo("home")} />;
+  }
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#080d14] text-[#e6edf3]">
       {/* Navbar */}
       <nav className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#080d14]/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-[76px] max-w-[1450px] items-center justify-between gap-5 px-5 lg:px-10">
-
           {/* Logo */}
           <button
             onClick={() => navigateTo("home")}
@@ -558,6 +631,13 @@ function App() {
                   className={navLinkClass("profile")}
                 >
                   Profile
+                </button>
+
+                <button
+                  onClick={() => navigateTo("resume")}
+                  className={navLinkClass("resume")}
+                >
+                  Resume Builder
                 </button>
               </>
             ) : (
@@ -641,6 +721,14 @@ function App() {
                     </button>
 
                     <button
+                      onClick={() => navigateTo("resume")}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-gray-300 transition hover:bg-white/[0.06] hover:text-emerald-400"
+                    >
+                      <FileText size={17} />
+                      Resume Builder
+                    </button>
+
+                    <button
                       onClick={handleLogout}
                       disabled={loggingOut}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
@@ -678,7 +766,6 @@ function App() {
         {mobileMenuOpen && (
           <div className="border-t border-white/[0.08] bg-[#0d151f] px-5 py-4 shadow-xl lg:hidden">
             <div className="mx-auto flex max-w-[1450px] flex-col gap-1">
-
               {user && (
                 <div className="mb-3 flex items-center gap-3 border-b border-white/[0.08] pb-4">
                   {user.avatarUrl ? (
@@ -783,6 +870,20 @@ function App() {
                     <span className="flex items-center gap-2">
                       <UserRound size={16} />
                       Profile
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => navigateTo("resume")}
+                    className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isCurrentPage("resume")
+                        ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                        : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <FileText size={16} />
+                      Resume Builder
                     </span>
                   </button>
 
@@ -919,7 +1020,10 @@ function App() {
       </section>
 
       {/* Features */}
-      <section id="features" className="mx-auto max-w-[1450px] px-5 py-12 lg:px-10">
+      <section
+        id="features"
+        className="mx-auto max-w-[1450px] px-5 py-12 lg:px-10"
+      >
         <div className="mb-9 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-400">
             Everything in one place
