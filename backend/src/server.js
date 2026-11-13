@@ -1,10 +1,11 @@
-
-import express from "express";
+﻿import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
-
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import prisma from "./config/prisma.js";
+
 import usersRouter from "./routes/users.js";
 import projectsRouter from "./routes/projects.js";
 import authRouter from "./routes/auth.js";
@@ -17,10 +18,39 @@ import resumesRouter from "./routes/resumes.js";
 dotenv.config();
 
 const app = express();
+const isProduction = process.env.NODE_ENV === "production";
+const PORT = process.env.PORT || 5000;
 
 if (!process.env.SESSION_SECRET) {
-  throw new Error("SESSION_SECRET is missing in backend/.env");
+  throw new Error("SESSION_SECRET is missing.");
 }
+
+const databaseUrl =
+  process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("Database connection URL is missing.");
+}
+
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
+
+// PostgreSQL connection pool for persistent sessions
+const { Pool } = pg;
+
+const sessionPool = new Pool({
+  connectionString: databaseUrl,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
+sessionPool.on("error", (error) => {
+  console.error("Session database pool error:", error.message);
+});
+
+const PgSession = connectPgSimple(session);
 
 app.use(
   cors({
@@ -31,23 +61,28 @@ app.use(
 
 app.use(express.json());
 
-// Session middleware
 app.use(
   session({
+    store: new PgSession({
+      pool: sessionPool,
+      tableName: "session",
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15,
+    }),
     name: "developerhub.sid",
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   })
 );
 
-// API routes
+// API Routes
 app.use("/api/users", usersRouter);
 app.use("/api/projects", projectsRouter);
 app.use("/api/auth", authRouter);
@@ -57,7 +92,7 @@ app.use("/api/learning-goals", learningGoalsRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/resumes", resumesRouter);
 
-// Welcome route
+// Welcome
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -65,7 +100,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Health check
+// Health Check
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -74,7 +109,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Database connection test
+// Database Test
 app.get("/api/db-test", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -82,10 +117,9 @@ app.get("/api/db-test", async (req, res) => {
     res.status(200).json({
       success: true,
       message: "PostgreSQL connected successfully!",
-      database: "developerhub_db",
     });
   } catch (error) {
-    console.error("Database connection error:", error);
+    console.error("Database connection error:", error.message);
 
     res.status(500).json({
       success: false,
@@ -93,8 +127,6 @@ app.get("/api/db-test", async (req, res) => {
     });
   }
 });
-
-const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`DeveloperHub API running on port ${PORT}`);

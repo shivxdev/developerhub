@@ -23,7 +23,7 @@ import {
 
 import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
 
-const API_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 type PortfolioTheme = "emerald" | "midnight" | "purple" | "light";
 
@@ -332,14 +332,14 @@ function Profile({ onBack }: ProfileProps) {
             {/* Profile Preview Card */}
             <div className="overflow-hidden rounded-2xl border border-[#293847] bg-[#101923] shadow-xl shadow-black/10">
 
-              <div className={`relative h-28 overflow-hidden bg-gradient-to-br ${selectedTheme.preview}`}>
+              <div className={`relative h-1 overflow-hidden bg-gradient-to-br ${selectedTheme.preview}`}>
                 <div className="absolute -right-8 -top-10 h-48 w-48 rounded-full border border-white/10" />
                 <div className="absolute -right-2 -top-10 h-36 w-36 rounded-full border border-white/10" />
                 <div className="absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
 
                 <div className="absolute left-5 top-5 flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-md">
                   <Sparkles size={13} />
-                  PROFILE PREVIEW
+                  {/* PROFILE PREVIEW */}
                 </div>
               </div>
 

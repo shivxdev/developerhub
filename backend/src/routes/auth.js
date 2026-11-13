@@ -326,11 +326,11 @@ router.post("/logout", (req, res) => {
       });
     }
 
-    res.clearCookie("developerhub.sid", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-    });
+   res.clearCookie("developerhub.sid", {
+   httpOnly: true,
+   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+   secure: process.env.NODE_ENV === "production",
+   });
 
     res.json({
       success: true,
