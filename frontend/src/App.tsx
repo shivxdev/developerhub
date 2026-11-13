@@ -2,6 +2,10 @@
 import { useState, useEffect } from "react";
 import Projects from "./pages/Projects";
 import GitHubDashboard from "./pages/GitHub";
+import Skills from "./pages/Skills";
+import LearningGoals from "./pages/LearningGoals";
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 
 import {
   Code2,
@@ -19,6 +23,10 @@ import {
   Menu,
   ExternalLink,
   Sparkles,
+  GraduationCap,
+  Target,
+  ChevronDown,
+  UserRound,
 } from "lucide-react";
 
 import { FaGithub } from "react-icons/fa";
@@ -38,6 +46,15 @@ interface AuthUser {
   } | null;
 }
 
+type Page =
+  | "home"
+  | "dashboard"
+  | "projects"
+  | "github"
+  | "skills"
+  | "learning"
+  | "profile";
+
 const features = [
   {
     icon: FaGithub,
@@ -53,6 +70,11 @@ const features = [
     icon: Folder,
     title: "Project Management",
     desc: "Organize and showcase your projects.",
+  },
+  {
+    icon: GraduationCap,
+    title: "Skills & Learning",
+    desc: "Track your skills, learning goals and progress.",
   },
   {
     icon: Palette,
@@ -95,6 +117,7 @@ function DashboardPreview() {
                 "Dashboard",
                 "Projects",
                 "Skills",
+                "Learning Goals",
                 "Portfolio",
                 "Resume",
                 "Analytics",
@@ -114,8 +137,10 @@ function DashboardPreview() {
                   ) : i === 2 ? (
                     <Star size={13} />
                   ) : i === 3 ? (
-                    <Palette size={13} />
+                    <Target size={13} />
                   ) : i === 4 ? (
+                    <Palette size={13} />
+                  ) : i === 5 ? (
                     <FileText size={13} />
                   ) : (
                     <GitBranch size={13} />
@@ -159,7 +184,9 @@ function DashboardPreview() {
                   className="rounded-lg border border-[#283747] bg-[#121f2d] p-2"
                 >
                   <stat.icon size={14} className="mb-2 text-emerald-400" />
-                  <p className="text-sm font-bold sm:text-lg">{stat.value}</p>
+                  <p className="text-sm font-bold sm:text-lg">
+                    {stat.value}
+                  </p>
                   <p className="text-[8px] text-gray-400">{stat.label}</p>
                 </div>
               ))}
@@ -195,7 +222,9 @@ function DashboardPreview() {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-[#283747] bg-[#121f2d] p-2 sm:p-3">
-                <p className="mb-3 text-[9px] font-semibold">Top Languages</p>
+                <p className="mb-3 text-[9px] font-semibold">
+                  Top Languages
+                </p>
 
                 {languages.map((lang) => (
                   <div key={lang.name} className="mb-2">
@@ -236,17 +265,48 @@ function DashboardPreview() {
   );
 }
 
-function App() {
-  const [currentPage, setCurrentPage] = useState<
-    "home" | "projects" | "github"
-  >("home");
+function LoginRequired({
+  message,
+  onBack,
+  onLogin,
+}: {
+  message: string;
+  onBack: () => void;
+  onLogin: () => void;
+}) {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#080d14] px-5 text-center text-white">
+      <FaGithub size={48} className="mb-5 text-emerald-400" />
 
+      <h2 className="text-2xl font-bold">Login Required</h2>
+
+      <p className="mt-3 text-gray-400">{message}</p>
+
+      <button
+        onClick={onLogin}
+        className="mt-6 rounded-full bg-emerald-500 px-6 py-3 font-bold text-black hover:bg-emerald-400"
+      >
+        Login with GitHub
+      </button>
+
+      <button
+        onClick={onBack}
+        className="mt-4 text-sm text-gray-400 hover:text-white"
+      >
+        Back to Home
+      </button>
+    </div>
+  );
+}
+
+function App() {
+  const [currentPage, setCurrentPage] = useState<Page>("home");
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  // Check authentication session
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -273,21 +333,17 @@ function App() {
     checkAuth();
   }, []);
 
-  // GitHub Login
   const handleGitHubLogin = () => {
     window.location.href = `${API_URL}/api/auth/github`;
   };
 
-  // Navigate to page
-  const navigateTo = (
-    page: "home" | "projects" | "github"
-  ) => {
+  const navigateTo = (page: Page) => {
     setCurrentPage(page);
     setMobileMenuOpen(false);
+    setProfileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Logout
   const handleLogout = async () => {
     try {
       setLoggingOut(true);
@@ -303,6 +359,7 @@ function App() {
         setUser(null);
         setCurrentPage("home");
         setMobileMenuOpen(false);
+        setProfileMenuOpen(false);
       } else {
         alert("Logout failed. Please try again.");
       }
@@ -314,7 +371,17 @@ function App() {
     }
   };
 
-  // Loading screen
+  const isCurrentPage = (page: Page): boolean => {
+    return currentPage === page;
+  };
+
+  const navLinkClass = (page: Page) =>
+    `relative whitespace-nowrap py-2 text-sm font-medium transition-colors ${
+      isCurrentPage(page)
+        ? "text-emerald-400 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:rounded-full after:bg-emerald-400"
+        : "text-gray-400 hover:text-white"
+    }`;
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#080d14] text-emerald-400">
@@ -328,29 +395,30 @@ function App() {
     );
   }
 
-  // Protect Projects page
+  // Protect Dashboard
+  if (currentPage === "dashboard") {
+    if (!user) {
+      return (
+        <LoginRequired
+          message="Please login with GitHub to access your dashboard."
+          onBack={() => navigateTo("home")}
+          onLogin={handleGitHubLogin}
+        />
+      );
+    }
+
+    return <Dashboard user={user} onNavigate={navigateTo} />;
+  }
+
+  // Protect Projects
   if (currentPage === "projects") {
     if (!user) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-[#080d14] px-5 text-center text-white">
-          <FaGithub size={48} className="mb-5 text-emerald-400" />
-          <h2 className="text-2xl font-bold">Login Required</h2>
-          <p className="mt-3 text-gray-400">
-            Please login with GitHub to access your projects.
-          </p>
-          <button
-            onClick={handleGitHubLogin}
-            className="mt-6 rounded-full bg-emerald-500 px-6 py-3 font-bold text-black hover:bg-emerald-400"
-          >
-            Login with GitHub
-          </button>
-          <button
-            onClick={() => navigateTo("home")}
-            className="mt-4 text-sm text-gray-400 hover:text-white"
-          >
-            Back to Home
-          </button>
-        </div>
+        <LoginRequired
+          message="Please login with GitHub to access your projects."
+          onBack={() => navigateTo("home")}
+          onLogin={handleGitHubLogin}
+        />
       );
     }
 
@@ -362,192 +430,399 @@ function App() {
     );
   }
 
-  // Protect GitHub Analytics page
+  // Protect GitHub Analytics
   if (currentPage === "github") {
     if (!user) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-[#080d14] px-5 text-center text-white">
-          <FaGithub size={48} className="mb-5 text-emerald-400" />
-          <h2 className="text-2xl font-bold">Login Required</h2>
-          <p className="mt-3 text-gray-400">
-            Please login with GitHub to access your analytics.
-          </p>
-          <button
-            onClick={handleGitHubLogin}
-            className="mt-6 rounded-full bg-emerald-500 px-6 py-3 font-bold text-black hover:bg-emerald-400"
-          >
-            Login with GitHub
-          </button>
-          <button
-            onClick={() => navigateTo("home")}
-            className="mt-4 text-sm text-gray-400 hover:text-white"
-          >
-            Back to Home
-          </button>
-        </div>
+        <LoginRequired
+          message="Please login with GitHub to access your analytics."
+          onBack={() => navigateTo("home")}
+          onLogin={handleGitHubLogin}
+        />
       );
     }
 
-    return (
-      <GitHubDashboard
-        onBack={() => navigateTo("home")}
-      />
-    );
+    return <GitHubDashboard onBack={() => navigateTo("home")} />;
+  }
+
+  // Protect Skills
+  if (currentPage === "skills") {
+    if (!user) {
+      return (
+        <LoginRequired
+          message="Please login with GitHub to access your skills and learning tracker."
+          onBack={() => navigateTo("home")}
+          onLogin={handleGitHubLogin}
+        />
+      );
+    }
+
+    return <Skills onBack={() => navigateTo("home")} />;
+  }
+
+  // Protect Learning Goals
+  if (currentPage === "learning") {
+    if (!user) {
+      return (
+        <LoginRequired
+          message="Please login with GitHub to manage your learning goals."
+          onBack={() => navigateTo("home")}
+          onLogin={handleGitHubLogin}
+        />
+      );
+    }
+
+    return <LearningGoals onBack={() => navigateTo("home")} />;
+  }
+
+  // Protect Developer Profile
+  if (currentPage === "profile") {
+    if (!user) {
+      return (
+        <LoginRequired
+          message="Please login with GitHub to manage your developer profile."
+          onBack={() => navigateTo("home")}
+          onLogin={handleGitHubLogin}
+        />
+      );
+    }
+
+    return <Profile onBack={() => navigateTo("home")} />;
   }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080d14] text-[#e6edf3]">
-
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#080d14]/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-[1450px] items-center justify-between gap-4 px-5 py-5 lg:px-10">
+      <nav className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#080d14]/95 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[76px] max-w-[1450px] items-center justify-between gap-5 px-5 lg:px-10">
 
+          {/* Logo */}
           <button
             onClick={() => navigateTo("home")}
-            className="flex items-center gap-2 text-xl font-bold"
+            className="flex shrink-0 items-center gap-2 text-xl font-bold tracking-tight"
           >
-            <Code2 className="text-emerald-400" size={34} />
-            Developer<span className="text-emerald-400">Hub</span>
+            <Code2 className="text-emerald-400" size={32} />
+            <span>
+              Developer<span className="text-emerald-400">Hub</span>
+            </span>
           </button>
 
-          <div className="hidden items-center gap-9 text-sm text-gray-300 md:flex">
+          {/* Desktop Navigation */}
+          <div className="hidden flex-1 items-center justify-center gap-5 lg:flex xl:gap-7">
             <button
               onClick={() => navigateTo("home")}
-              className="border-b-2 border-emerald-400 pb-2 text-white"
+              className={navLinkClass("home")}
             >
               Home
             </button>
 
-            <a href="#features" className="transition hover:text-emerald-400">
-              Features
-            </a>
+            {user ? (
+              <>
+                <button
+                  onClick={() => navigateTo("dashboard")}
+                  className={navLinkClass("dashboard")}
+                >
+                  Dashboard
+                </button>
 
-            <a href="#about" className="transition hover:text-emerald-400">
-              About
-            </a>
-
-            <a href="#pricing" className="transition hover:text-emerald-400">
-              Pricing
-            </a>
-
-            <a href="#faq" className="transition hover:text-emerald-400">
-              FAQ
-            </a>
-          </div>
-
-          {/* Authentication Navbar */}
-          {user ? (
-            <div className="flex items-center gap-3">
-
-              <div className="hidden items-center gap-2 sm:flex">
                 <button
                   onClick={() => navigateTo("projects")}
-                  className="rounded-full border border-gray-700 px-4 py-2 text-sm font-semibold transition hover:border-emerald-400 hover:text-emerald-400"
+                  className={navLinkClass("projects")}
                 >
                   Projects
                 </button>
 
                 <button
+                  onClick={() => navigateTo("skills")}
+                  className={navLinkClass("skills")}
+                >
+                  Skills
+                </button>
+
+                <button
+                  onClick={() => navigateTo("learning")}
+                  className={navLinkClass("learning")}
+                >
+                  Learning Goals
+                </button>
+
+                <button
                   onClick={() => navigateTo("github")}
-                  className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500 hover:text-black"
+                  className={navLinkClass("github")}
                 >
                   GitHub Analytics
                 </button>
+
+                <button
+                  onClick={() => navigateTo("profile")}
+                  className={navLinkClass("profile")}
+                >
+                  Profile
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href="#features"
+                  className="whitespace-nowrap py-2 text-sm font-medium text-gray-400 transition hover:text-white"
+                >
+                  Features
+                </a>
+
+                <a
+                  href="#about"
+                  className="whitespace-nowrap py-2 text-sm font-medium text-gray-400 transition hover:text-white"
+                >
+                  About
+                </a>
+              </>
+            )}
+          </div>
+
+          {/* Desktop Profile / Login */}
+          <div className="hidden shrink-0 items-center gap-3 lg:flex">
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                  className="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-2 transition hover:bg-white/[0.06]"
+                  aria-label="Open profile menu"
+                  aria-expanded={profileMenuOpen}
+                >
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt="GitHub avatar"
+                      className="h-9 w-9 rounded-full border border-white/15 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1b2b35] text-sm font-bold text-emerald-400">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  <span className="max-w-[115px] truncate text-sm font-semibold text-gray-200">
+                    {user.name}
+                  </span>
+
+                  <ChevronDown
+                    size={16}
+                    className={`text-gray-400 transition-transform ${
+                      profileMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {profileMenuOpen && (
+                  <div className="absolute right-0 top-full mt-3 w-60 overflow-hidden rounded-xl border border-[#293847] bg-[#101923] p-2 shadow-2xl shadow-black/40">
+                    <div className="border-b border-white/[0.08] px-3 py-3">
+                      <p className="truncate text-sm font-semibold text-white">
+                        {user.name}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-gray-400">
+                        @{user.githubAccount?.username ?? "developer"}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => navigateTo("dashboard")}
+                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-gray-300 transition hover:bg-white/[0.06] hover:text-emerald-400"
+                    >
+                      <BarChart3 size={17} />
+                      Dashboard
+                    </button>
+
+                    <button
+                      onClick={() => navigateTo("profile")}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-gray-300 transition hover:bg-white/[0.06] hover:text-emerald-400"
+                    >
+                      <UserRound size={17} />
+                      Edit Profile
+                    </button>
+
+                    <button
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                    >
+                      <ExternalLink size={17} />
+                      {loggingOut ? "Logging out..." : "Logout"}
+                    </button>
+                  </div>
+                )}
               </div>
-
-              {user.avatarUrl && (
-                <img
-                  src={user.avatarUrl}
-                  alt="GitHub avatar"
-                  className="h-9 w-9 rounded-full border border-emerald-500/40"
-                />
-              )}
-
-              <div className="hidden sm:block">
-                <p className="text-sm font-semibold">{user.name}</p>
-                <p className="text-xs text-gray-400">
-                  @{user.githubAccount?.username ?? "developer"}
-                </p>
-              </div>
-
+            ) : (
               <button
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="rounded-full border border-gray-600 px-3 py-2 text-xs transition hover:border-red-400 hover:text-red-400 disabled:opacity-50 sm:px-4 sm:text-sm"
+                onClick={handleGitHubLogin}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-gray-200 transition hover:border-emerald-400/60 hover:text-emerald-400"
               >
-                {loggingOut ? "Logging out..." : "Logout"}
+                <FaGithub size={17} />
+                Login with GitHub
+                <ArrowRight size={15} />
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleGitHubLogin}
-              className="hidden items-center gap-2 rounded-full border border-gray-600 px-5 py-2.5 text-sm font-semibold transition hover:border-emerald-400 hover:text-emerald-400 sm:flex"
-            >
-              <FaGithub size={17} />
-              Login with GitHub
-              <ArrowRight size={15} />
-            </button>
-          )}
+            )}
+          </div>
 
-          {/* Mobile Menu */}
+          {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-lg border border-gray-700 p-2 md:hidden"
+            className="rounded-lg border border-white/10 p-2 text-gray-300 transition hover:border-emerald-400/50 hover:text-emerald-400 lg:hidden"
             aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
           >
             <Menu size={21} />
           </button>
         </div>
 
+        {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="border-t border-white/10 bg-[#101923] px-5 py-4 md:hidden">
-            <div className="flex flex-col gap-3 text-sm text-gray-300">
+          <div className="border-t border-white/[0.08] bg-[#0d151f] px-5 py-4 shadow-xl lg:hidden">
+            <div className="mx-auto flex max-w-[1450px] flex-col gap-1">
+
+              {user && (
+                <div className="mb-3 flex items-center gap-3 border-b border-white/[0.08] pb-4">
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt="GitHub avatar"
+                      className="h-10 w-10 rounded-full border border-white/15 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1b2b35] font-bold text-emerald-400">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">
+                      {user.name}
+                    </p>
+                    <p className="truncate text-xs text-gray-400">
+                      @{user.githubAccount?.username ?? "developer"}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={() => navigateTo("home")}
-                className="py-2 text-left hover:text-emerald-400"
+                className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                  isCurrentPage("home")
+                    ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                    : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                }`}
               >
                 Home
               </button>
 
-              <a
-                href="#features"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 hover:text-emerald-400"
-              >
-                Features
-              </a>
-
-              <a
-                href="#about"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-2 hover:text-emerald-400"
-              >
-                About
-              </a>
-
               {user ? (
                 <>
                   <button
-                    onClick={() => navigateTo("projects")}
-                    className="py-2 text-left hover:text-emerald-400"
+                    onClick={() => navigateTo("dashboard")}
+                    className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isCurrentPage("dashboard")
+                        ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                        : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
                   >
-                    My Projects
+                    Dashboard
+                  </button>
+
+                  <button
+                    onClick={() => navigateTo("projects")}
+                    className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isCurrentPage("projects")
+                        ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                        : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    Projects
+                  </button>
+
+                  <button
+                    onClick={() => navigateTo("skills")}
+                    className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isCurrentPage("skills")
+                        ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                        : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    Skills
+                  </button>
+
+                  <button
+                    onClick={() => navigateTo("learning")}
+                    className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isCurrentPage("learning")
+                        ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                        : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    Learning Goals
                   </button>
 
                   <button
                     onClick={() => navigateTo("github")}
-                    className="py-2 text-left text-emerald-400"
+                    className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isCurrentPage("github")
+                        ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                        : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
                   >
                     GitHub Analytics
                   </button>
+
+                  <button
+                    onClick={() => navigateTo("profile")}
+                    className={`rounded-lg px-3 py-2.5 text-left text-sm transition ${
+                      isCurrentPage("profile")
+                        ? "bg-emerald-500/10 font-semibold text-emerald-400"
+                        : "text-gray-300 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <UserRound size={16} />
+                      Profile
+                    </span>
+                  </button>
+
+                  <div className="my-2 border-t border-white/[0.08]" />
+
+                  <button
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="rounded-lg px-3 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                  >
+                    {loggingOut ? "Logging out..." : "Logout"}
+                  </button>
                 </>
               ) : (
-                <button
-                  onClick={handleGitHubLogin}
-                  className="py-2 text-left text-emerald-400"
-                >
-                  Login with GitHub
-                </button>
+                <>
+                  <a
+                    href="#features"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm text-gray-300 transition hover:bg-white/[0.04] hover:text-white"
+                  >
+                    Features
+                  </a>
+
+                  <a
+                    href="#about"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm text-gray-300 transition hover:bg-white/[0.04] hover:text-white"
+                  >
+                    About
+                  </a>
+
+                  <button
+                    onClick={handleGitHubLogin}
+                    className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-[#06120c] transition hover:bg-emerald-400"
+                  >
+                    <FaGithub size={17} />
+                    Login with GitHub
+                    <ArrowRight size={15} />
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -556,7 +831,6 @@ function App() {
 
       {/* Hero */}
       <section className="relative mx-auto grid max-w-[1450px] items-center gap-12 px-5 py-12 lg:grid-cols-[1fr_1.08fr] lg:px-10 lg:py-16">
-
         <div className="absolute left-0 top-20 -z-0 h-64 w-64 rounded-full bg-emerald-500/10 blur-[110px]" />
 
         <div className="relative z-10">
@@ -655,7 +929,7 @@ function App() {
           </h2>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
             <div
               key={feature.title}
@@ -666,14 +940,19 @@ function App() {
               </div>
 
               <h3 className="mb-2 font-bold">{feature.title}</h3>
-              <p className="text-sm leading-6 text-gray-400">{feature.desc}</p>
+              <p className="text-sm leading-6 text-gray-400">
+                {feature.desc}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
       {/* About / Journey */}
-      <section id="about" className="mx-auto grid max-w-[1450px] items-center gap-12 px-5 py-24 lg:grid-cols-2 lg:px-10">
+      <section
+        id="about"
+        className="mx-auto grid max-w-[1450px] items-center gap-12 px-5 py-24 lg:grid-cols-2 lg:px-10"
+      >
         <div className="rounded-3xl border border-[#293847] bg-[#101923] p-7 sm:p-10">
           <div className="mb-6 flex gap-2">
             <span className="h-3 w-3 rounded-full bg-red-400" />
@@ -768,7 +1047,6 @@ function App() {
       {/* Footer */}
       <footer className="border-t border-white/10 px-5 py-8 lg:px-10">
         <div className="mx-auto flex max-w-[1450px] flex-col items-center justify-between gap-5 sm:flex-row">
-
           <div className="flex items-center gap-2 text-xl font-bold">
             <Code2 className="text-emerald-400" size={27} />
             Developer<span className="text-emerald-400">Hub</span>

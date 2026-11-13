@@ -11,7 +11,7 @@ import authRouter from "./routes/auth.js";
 import githubRouter from "./routes/github.js";
 import skillsRouter from "./routes/skills.js";
 import learningGoalsRouter from "./routes/learningGoals.js";
-
+import profileRouter from "./routes/profile.js";
 
 dotenv.config();
 
@@ -53,7 +53,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/github", githubRouter);
 app.use("/api/skills", skillsRouter);
 app.use("/api/learning-goals", learningGoalsRouter);
-
+app.use("/api/profile", profileRouter);
 
 // Welcome route
 app.get("/", (req, res) => {
