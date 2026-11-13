@@ -8,6 +8,14 @@ const router = express.Router();
 // Username validation
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 
+// Allowed portfolio themes
+const allowedPortfolioThemes = [
+  "emerald",
+  "midnight",
+  "purple",
+  "light",
+];
+
 // URL validation
 const isValidUrl = (value) => {
   if (!value) return true;
@@ -38,6 +46,7 @@ router.get("/", requireAuth, async (req, res) => {
         linkedinUrl: true,
         twitterUrl: true,
         isPublic: true,
+        portfolioTheme: true,
         createdAt: true,
         githubAccount: {
           select: {
@@ -101,11 +110,16 @@ router.put("/", requireAuth, async (req, res) => {
       linkedinUrl,
       twitterUrl,
       isPublic,
+      portfolioTheme,
     } = req.body;
 
     // Validate name
     if (name !== undefined) {
-      if (typeof name !== "string" || !name.trim() || name.trim().length > 100) {
+      if (
+        typeof name !== "string" ||
+        !name.trim() ||
+        name.trim().length > 100
+      ) {
         return res.status(400).json({
           success: false,
           message: "Name must be between 1 and 100 characters.",
@@ -123,21 +137,6 @@ router.put("/", requireAuth, async (req, res) => {
           success: false,
           message:
             "Username must be 3-20 characters and contain only letters, numbers, and underscores.",
-        });
-      }
-    }
-
-    // Public profiles must have a username
-    if (isPublic === true && username === undefined) {
-      const currentUser = await prisma.user.findUnique({
-        where: { id: req.session.userId },
-        select: { username: true },
-      });
-
-      if (!currentUser?.username) {
-        return res.status(400).json({
-          success: false,
-          message: "Set a username before making your profile public.",
         });
       }
     }
@@ -185,6 +184,7 @@ router.put("/", requireAuth, async (req, res) => {
       }
     }
 
+    // Validate public visibility
     if (isPublic !== undefined && typeof isPublic !== "boolean") {
       return res.status(400).json({
         success: false,
@@ -192,12 +192,27 @@ router.put("/", requireAuth, async (req, res) => {
       });
     }
 
+    // Validate portfolio theme
+    if (
+      portfolioTheme !== undefined &&
+      !allowedPortfolioThemes.includes(portfolioTheme)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid portfolio theme selected.",
+      });
+    }
+
     const data = {};
 
     if (name !== undefined) data.name = name.trim();
+
     if (username !== undefined) {
-      data.username = username ? username.trim().toLowerCase() : null;
+      data.username = username
+        ? username.trim().toLowerCase()
+        : null;
     }
+
     if (headline !== undefined) data.headline = headline?.trim() || null;
     if (bio !== undefined) data.bio = bio?.trim() || null;
     if (location !== undefined) data.location = location?.trim() || null;
@@ -206,6 +221,10 @@ router.put("/", requireAuth, async (req, res) => {
     if (linkedinUrl !== undefined) data.linkedinUrl = linkedinUrl || null;
     if (twitterUrl !== undefined) data.twitterUrl = twitterUrl || null;
     if (isPublic !== undefined) data.isPublic = isPublic;
+
+    if (portfolioTheme !== undefined) {
+      data.portfolioTheme = portfolioTheme;
+    }
 
     // Prevent publishing without a username
     if (data.isPublic === true && data.username === null) {
@@ -246,6 +265,7 @@ router.put("/", requireAuth, async (req, res) => {
         linkedinUrl: true,
         twitterUrl: true,
         isPublic: true,
+        portfolioTheme: true,
         updatedAt: true,
       },
     });
@@ -292,6 +312,7 @@ router.get("/:username", async (req, res) => {
         websiteUrl: true,
         linkedinUrl: true,
         twitterUrl: true,
+        portfolioTheme: true,
         createdAt: true,
         githubAccount: {
           select: {
